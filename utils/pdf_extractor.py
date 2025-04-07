@@ -69,11 +69,14 @@ def extract_patent_sections(file_bytes: bytes) -> dict:
     # --- Abstract ---
     abstract = ""
     abstract_match = re.search(
-        r"(abstract[:\-\n]?\s*)(.*?)(?=\n\d+\s*\.|\nclaims?|what is claimed|background|description)",
+        r"abstract\s*[:\-\s]*\n?(.*?)(?=\n\s*(field of invention|technical field|background|summary|claims|description|brief description of drawings)|\n\d+\s*\.)",
         lowered, re.IGNORECASE | re.DOTALL
     )
     if abstract_match:
-        abstract = abstract_match.group(2).strip()
+        abstract_text = abstract_match.group(1).strip()
+        # Limit abstract length to prevent irrelevant long captures
+        abstract_lines = abstract_text.split('\n')
+        abstract = " ".join(abstract_lines[:10]).strip()  # Take only first 10 lines at most
 
     # --- Claims ---
     claim_lines = []

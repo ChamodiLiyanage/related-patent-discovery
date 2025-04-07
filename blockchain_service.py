@@ -55,16 +55,44 @@ def store_cid_on_blockchain(patent_id: int, cid: str) -> str:
             "from": account.address,
             "nonce": nonce,
             "gas": 200000,
-            "gasPrice": web3.to_wei("10", "gwei"),
-            "chainId": 11155111  # Sepolia
+            "maxFeePerGas": web3.to_wei("50", "gwei"),
+            "maxPriorityFeePerGas": web3.to_wei("2", "gwei"),
+            "chainId": 11155111
         })
 
         signed_txn = web3.eth.account.sign_transaction(txn, private_key=PRIVATE_KEY)
         txn_hash = web3.eth.send_raw_transaction(signed_txn.rawTransaction)
+
+        print(f"[INFO] Tx sent: {txn_hash.hex()}")
+        receipt = web3.eth.wait_for_transaction_receipt(txn_hash, timeout=120)
+        print(f"[INFO] Tx mined in block {receipt.blockNumber}")
 
         return txn_hash.hex()
 
     except Exception as e:
         print("Error storing CID to blockchain:", e)
         return None
+
+
+# def store_cid_on_blockchain(patent_id: int, cid: str) -> str:
+#     try:
+#         account = web3.eth.account.from_key(PRIVATE_KEY)
+#         nonce = web3.eth.get_transaction_count(account.address)
+
+#         txn = contract.functions.storeHash(patent_id, cid).build_transaction({
+#             "from": account.address,
+#             "nonce": nonce,
+#             "gas": 200000,
+#             "gasPrice": web3.to_wei("10", "gwei"),
+#             "chainId": 11155111  # Sepolia
+#         })
+
+#         signed_txn = web3.eth.account.sign_transaction(txn, private_key=PRIVATE_KEY)
+#         txn_hash = web3.eth.send_raw_transaction(signed_txn.rawTransaction)
+
+#         return txn_hash.hex()
+
+#     except Exception as e:
+#         print("Error storing CID to blockchain:", e)
+#         return None
 
