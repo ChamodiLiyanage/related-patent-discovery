@@ -67,16 +67,52 @@ def extract_patent_sections(file_bytes: bytes) -> dict:
     title = next((line for line in lines if "patent" in line.lower() and len(line) < 100), "Untitled")
 
     # --- Abstract ---
-    abstract = ""
+    # --- Optimized Abstract Extraction ---
     abstract_match = re.search(
-        r"abstract\s*[:\-\s]*\n?(.*?)(?=\n\s*(field of invention|technical field|background|summary|claims|description|brief description of drawings)|\n\d+\s*\.)",
-        lowered, re.IGNORECASE | re.DOTALL
+        r"(?i)(?<=abstract)(?:\s*[:\-\.]?\s*)(.+?)(?=\n\s*(?:field of invention|technical field|field|background|summary|claims|description|brief description|detailed description|\n\d+\s*\.))",
+        full_text, re.DOTALL
     )
+
+    abstract = ""
     if abstract_match:
-        abstract_text = abstract_match.group(1).strip()
-        # Limit abstract length to prevent irrelevant long captures
-        abstract_lines = abstract_text.split('\n')
-        abstract = " ".join(abstract_lines[:10]).strip()  # Take only first 10 lines at most
+        abstract_candidate = abstract_match.group(1).strip()
+        abstract_lines = abstract_candidate.splitlines()
+
+        # Further clean-up: explicitly exclude lines containing patent codes/classifications
+        abstract_lines = [
+            line.strip() for line in abstract_lines
+            if line.strip() and not re.match(r"^\(?\s*\d+\s*\)?|[A-Z]+\d+[A-Z]?\s*\d+/\d+", line.strip())
+        ]
+        abstract = " ".join(abstract_lines).replace('\n', ' ').strip()
+
+    # abstract = ""
+    # abstract_match = re.search(
+    #     r"abstract\s*[:\-\s]*\n?(.*?)(?:\n\s*(field of invention|technical field|background|summary|claims|description|brief description of drawings)|\n\d+\s*\.)",
+    #     full_text, re.IGNORECASE | re.DOTALL
+    # )
+
+    # if abstract_match:
+    #     abstract_candidate = abstract_match.group(1).strip()
+    #     abstract_lines = abstract_candidate.splitlines()
+
+    #     # Further clean-up: exclude lines with classifications or codes
+    #     abstract_lines = [
+    #         line for line in abstract_lines
+    #         if not re.match(r"^\(?\s*\d+\s*\)?|[A-Z]+\d+[A-Z]?\s*\d+/\d+", line.strip())
+    #     ]
+    #     abstract = " ".join(abstract_lines).replace('\n', ' ').strip()
+
+    #     # Ensure abstract is at least a minimum length, otherwise fallback to OCR
+    #     if len(abstract) < 50:
+    #         print("[INFO] Abstract too short, triggering OCR fallback...")
+    #         ocr_text = extract_text_ocr(file_bytes)
+    #         ocr_abstract_match = re.search(
+    #             r"abstract\s*[:\-\s]*\n?(.*?)(?:\n\s*(field of invention|technical field|background|summary|claims|description|brief description of drawings)|\n\d+\s*\.)",
+    #             ocr_text, re.IGNORECASE | re.DOTALL
+    #         )
+    #         if ocr_abstract_match:
+    #             abstract = ocr_abstract_match.group(1).replace('\n', ' ').strip()
+
 
     # --- Claims ---
     claim_lines = []
